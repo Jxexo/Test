@@ -1,113 +1,105 @@
--- Services
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
-local Camera = game:GetService("Workspace").CurrentCamera
+local Camera = game.Workspace.CurrentCamera
 
--- Variables
+-- Variables for UI size, position, and aimbot
+local isOpen = true
 local aimbotEnabled = false
+local selectedPlayer = nil
 local closestPlayer = nil
 
 -- Create the GUI
 local ScreenGui = Instance.new("ScreenGui")
 local Frame = Instance.new("Frame")
-local AimbotToggle = Instance.new("TextButton")
-local StopAimbotButton = Instance.new("TextButton")
-local CloseButton = Instance.new("TextButton")
+local ToggleAimbotButton = Instance.new("TextButton")
+local ToggleButton = Instance.new("TextButton")
+local AimbotStatusLabel = Instance.new("TextLabel")
 
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 Frame.Parent = ScreenGui
-Frame.Size = UDim2.new(0, 200, 0, 150)
-Frame.Position = UDim2.new(0.5, -100, 0.5, -75)
+Frame.Size = UDim2.new(0, 300, 0, 150)
+Frame.Position = UDim2.new(0.5, -150, 0.5, -75)
 Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 Frame.Active = true
-Frame.Draggable = true
+Frame.Draggable = true -- Make the UI draggable
 
-AimbotToggle.Parent = Frame
-AimbotToggle.Size = UDim2.new(1, 0, 0, 50)
-AimbotToggle.Position = UDim2.new(0, 0, 0, 0)
-AimbotToggle.Text = "Toggle Aimbot: OFF"
-AimbotToggle.TextScaled = true
-AimbotToggle.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+-- Aimbot Toggle Button
+ToggleAimbotButton.Parent = Frame
+ToggleAimbotButton.Size = UDim2.new(1, 0, 0, 50)
+ToggleAimbotButton.Position = UDim2.new(0, 0, 0.2, 0)
+ToggleAimbotButton.Text = "Toggle Aimbot"
+ToggleAimbotButton.TextScaled = true
 
-StopAimbotButton.Parent = Frame
-StopAimbotButton.Size = UDim2.new(1, 0, 0, 50)
-StopAimbotButton.Position = UDim2.new(0, 0, 0.35, 0)
-StopAimbotButton.Text = "Stop Aimbot"
-StopAimbotButton.TextScaled = true
-StopAimbotButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+-- Aimbot Status Label
+AimbotStatusLabel.Parent = Frame
+AimbotStatusLabel.Size = UDim2.new(1, 0, 0, 50)
+AimbotStatusLabel.Position = UDim2.new(0, 0, 0.6, 0)
+AimbotStatusLabel.Text = "Aimbot: OFF"
+AimbotStatusLabel.TextScaled = true
+AimbotStatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
 
-CloseButton.Parent = Frame
-CloseButton.Size = UDim2.new(1, 0, 0, 50)
-CloseButton.Position = UDim2.new(0, 0, 0.7, 0)
-CloseButton.Text = "Close UI"
-CloseButton.TextScaled = true
-CloseButton.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+-- Toggle Button for opening and closing the UI
+ToggleButton.Parent = ScreenGui
+ToggleButton.Size = UDim2.new(0, 100, 0, 30)
+ToggleButton.Position = UDim2.new(0, 10, 0, 10)
+ToggleButton.Text = "Close UI"
+ToggleButton.TextScaled = true
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
 
--- Function to find the closest player to aim at
-local function findClosestPlayer()
-    local shortestDistance = math.huge
-    closestPlayer = nil
+-- Function to toggle the UI
+local function toggleUI()
+    isOpen = not isOpen
+    if isOpen then
+        Frame.Visible = true
+        ToggleButton.Text = "Close UI"
+    else
+        Frame.Visible = false
+        ToggleButton.Text = "Open UI"
+    end
+end
 
+ToggleButton.MouseButton1Click:Connect(toggleUI)
+
+-- Aimbot functionality
+local function getClosestPlayer()
+    local closestDistance = math.huge
+    local closestPlayer = nil
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            local distance = (player.Character.Head.Position - LocalPlayer.Character.Head.Position).Magnitude
-            if distance < shortestDistance then
-                shortestDistance = distance
-                closestPlayer = player
+            local head = player.Character.Head
+            local screenPoint, onScreen = Camera:WorldToViewportPoint(head.Position)
+            if onScreen then
+                local mousePos = UIS:GetMouseLocation()
+                local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - mousePos).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestPlayer = player
+                end
             end
         end
     end
-
     return closestPlayer
 end
 
--- Function to enable the aimbot
-local function enableAimbot()
-    if not LocalPlayer.Character then return end
-    LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson -- Force first-person mode
-
-    -- Run the aimbot loop
-    RunService.RenderStepped:Connect(function()
-        if aimbotEnabled and closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
-            local headPosition = closestPlayer.Character.Head.Position
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, headPosition) -- Aim at the player's head
-        end
-    end)
-end
-
--- Toggle the aimbot when button is clicked
-AimbotToggle.MouseButton1Click:Connect(function()
+-- Toggle aimbot functionality
+ToggleAimbotButton.MouseButton1Click:Connect(function()
     aimbotEnabled = not aimbotEnabled
     if aimbotEnabled then
-        AimbotToggle.Text = "Toggle Aimbot: ON"
-        AimbotToggle.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-        findClosestPlayer() -- Find the closest player
-        enableAimbot() -- Start aimbot
+        AimbotStatusLabel.Text = "Aimbot: ON"
+        AimbotStatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
     else
-        AimbotToggle.Text = "Toggle Aimbot: OFF"
-        AimbotToggle.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-        LocalPlayer.CameraMode = Enum.CameraMode.Classic -- Reset camera mode
+        AimbotStatusLabel.Text = "Aimbot: OFF"
+        AimbotStatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
     end
 end)
 
--- Stop the aimbot when button is clicked
-StopAimbotButton.MouseButton1Click:Connect(function()
-    aimbotEnabled = false
-    AimbotToggle.Text = "Toggle Aimbot: OFF"
-    AimbotToggle.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-    LocalPlayer.CameraMode = Enum.CameraMode.Classic -- Reset camera mode
-end)
-
--- Close the UI
-CloseButton.MouseButton1Click:Connect(function()
-    Frame.Visible = false
-end)
-
--- Update closest player every frame
-RunService.RenderStepped:Connect(function()
+-- Aimbot loop
+game:GetService("RunService").RenderStepped:Connect(function()
     if aimbotEnabled then
-        findClosestPlayer() -- Continuously update the closest player
+        closestPlayer = getClosestPlayer()
+        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestPlayer.Character.Head.Position)
+        end
     end
 end)
