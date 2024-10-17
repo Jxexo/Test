@@ -1,121 +1,113 @@
+-- Services
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
+local Camera = game:GetService("Workspace").CurrentCamera
 
--- Variables for UI size and position
-local isOpen = true
-local selectedPlayer = nil
+-- Variables
+local aimbotEnabled = false
+local closestPlayer = nil
 
 -- Create the GUI
 local ScreenGui = Instance.new("ScreenGui")
 local Frame = Instance.new("Frame")
-local PlayerList = Instance.new("TextLabel")
-local MessageBox = Instance.new("TextBox")
-local SendButton = Instance.new("TextButton")
-local ToggleButton = Instance.new("TextButton")
+local AimbotToggle = Instance.new("TextButton")
+local StopAimbotButton = Instance.new("TextButton")
+local CloseButton = Instance.new("TextButton")
 
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 Frame.Parent = ScreenGui
-Frame.Size = UDim2.new(0, 300, 0, 300)
-Frame.Position = UDim2.new(0.5, -150, 0.5, -150)
+Frame.Size = UDim2.new(0, 200, 0, 150)
+Frame.Position = UDim2.new(0.5, -100, 0.5, -75)
 Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 Frame.Active = true
-Frame.Draggable = true -- Make the UI draggable
+Frame.Draggable = true
 
-PlayerList.Parent = Frame
-PlayerList.Size = UDim2.new(1, 0, 0, 100)
-PlayerList.Position = UDim2.new(0, 0, 0, 0)
-PlayerList.Text = "Select a player to imitate:"
-PlayerList.TextScaled = true
+AimbotToggle.Parent = Frame
+AimbotToggle.Size = UDim2.new(1, 0, 0, 50)
+AimbotToggle.Position = UDim2.new(0, 0, 0, 0)
+AimbotToggle.Text = "Toggle Aimbot: OFF"
+AimbotToggle.TextScaled = true
+AimbotToggle.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
 
-MessageBox.Parent = Frame
-MessageBox.Size = UDim2.new(1, 0, 0, 50)
-MessageBox.Position = UDim2.new(0, 0, 0.4, 0)
-MessageBox.PlaceholderText = "Type your message here"
+StopAimbotButton.Parent = Frame
+StopAimbotButton.Size = UDim2.new(1, 0, 0, 50)
+StopAimbotButton.Position = UDim2.new(0, 0, 0.35, 0)
+StopAimbotButton.Text = "Stop Aimbot"
+StopAimbotButton.TextScaled = true
+StopAimbotButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
 
-SendButton.Parent = Frame
-SendButton.Size = UDim2.new(1, 0, 0, 50)
-SendButton.Position = UDim2.new(0, 0, 0.7, 0)
-SendButton.Text = "Send Message"
-SendButton.TextScaled = true
+CloseButton.Parent = Frame
+CloseButton.Size = UDim2.new(1, 0, 0, 50)
+CloseButton.Position = UDim2.new(0, 0, 0.7, 0)
+CloseButton.Text = "Close UI"
+CloseButton.TextScaled = true
+CloseButton.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
 
--- Toggle Button for opening and closing the UI
-ToggleButton.Parent = ScreenGui
-ToggleButton.Size = UDim2.new(0, 100, 0, 30)
-ToggleButton.Position = UDim2.new(0, 10, 0, 10)
-ToggleButton.Text = "Close UI"
-ToggleButton.TextScaled = true
-ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+-- Function to find the closest player to aim at
+local function findClosestPlayer()
+    local shortestDistance = math.huge
+    closestPlayer = nil
 
--- Function to toggle the UI
-local function toggleUI()
-    isOpen = not isOpen
-    if isOpen then
-        Frame.Visible = true
-        ToggleButton.Text = "Close UI"
-    else
-        Frame.Visible = false
-        ToggleButton.Text = "Open UI"
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local distance = (player.Character.Head.Position - LocalPlayer.Character.Head.Position).Magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestPlayer = player
+            end
+        end
     end
+
+    return closestPlayer
 end
 
-ToggleButton.MouseButton1Click:Connect(toggleUI)
+-- Function to enable the aimbot
+local function enableAimbot()
+    if not LocalPlayer.Character then return end
+    LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson -- Force first-person mode
 
--- Function to simulate a chat message
-local function fakeChatMessage(targetPlayerName, message)
-    local chatMessage = string.format("%s: %s", targetPlayerName, message)
-    game.ReplicatedStorage.DefaultChatSystemChat:FindFirstChild("Chat")
-        :Chat(LocalPlayer.Character.Head, chatMessage)
+    -- Run the aimbot loop
+    RunService.RenderStepped:Connect(function()
+        if aimbotEnabled and closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+            local headPosition = closestPlayer.Character.Head.Position
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, headPosition) -- Aim at the player's head
+        end
+    end)
 end
 
--- Send message when button is clicked
-SendButton.MouseButton1Click:Connect(function()
-    local message = MessageBox.Text
-    if selectedPlayer and message and message ~= "" then
-        fakeChatMessage(selectedPlayer, message)
+-- Toggle the aimbot when button is clicked
+AimbotToggle.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    if aimbotEnabled then
+        AimbotToggle.Text = "Toggle Aimbot: ON"
+        AimbotToggle.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+        findClosestPlayer() -- Find the closest player
+        enableAimbot() -- Start aimbot
     else
-        print("No player selected or message is empty!")
+        AimbotToggle.Text = "Toggle Aimbot: OFF"
+        AimbotToggle.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic -- Reset camera mode
     end
 end)
 
--- Update player list with clickable buttons
-local function updatePlayerList()
-    -- Clear existing list
-    for _, child in pairs(PlayerList:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
+-- Stop the aimbot when button is clicked
+StopAimbotButton.MouseButton1Click:Connect(function()
+    aimbotEnabled = false
+    AimbotToggle.Text = "Toggle Aimbot: OFF"
+    AimbotToggle.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+    LocalPlayer.CameraMode = Enum.CameraMode.Classic -- Reset camera mode
+end)
+
+-- Close the UI
+CloseButton.MouseButton1Click:Connect(function()
+    Frame.Visible = false
+end)
+
+-- Update closest player every frame
+RunService.RenderStepped:Connect(function()
+    if aimbotEnabled then
+        findClosestPlayer() -- Continuously update the closest player
     end
-
-    -- Add player buttons
-    for i, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local PlayerButton = Instance.new("TextButton")
-            PlayerButton.Parent = PlayerList
-            PlayerButton.Size = UDim2.new(1, 0, 0, 25)
-            PlayerButton.Position = UDim2.new(0, 0, 0, 25 * i)
-            PlayerButton.Text = player.Name
-            PlayerButton.TextScaled = true
-            PlayerButton.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-            
-            -- When a player is selected, highlight the selected player
-            PlayerButton.MouseButton1Click:Connect(function()
-                selectedPlayer = player.Name
-                for _, sibling in ipairs(PlayerList:GetChildren()) do
-                    if sibling:IsA("TextButton") then
-                        sibling.BackgroundColor3 = Color3.fromRGB(200, 200, 200) -- Reset all other buttons
-                    end
-                end
-                PlayerButton.BackgroundColor3 = Color3.fromRGB(150, 150, 150) -- Highlight the selected button
-                print("Selected player: " .. selectedPlayer)
-            end)
-        end
-    end
-end
-
--- Connect player added and removed events
-Players.PlayerAdded:Connect(updatePlayerList)
-Players.PlayerRemoving:Connect(updatePlayerList)
-
--- Update player list initially
-updatePlayerList()
+end)
