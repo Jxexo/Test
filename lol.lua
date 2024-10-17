@@ -1,9 +1,10 @@
 local webhookURL = "https://discord.com/api/webhooks/1294551378886397972/LiaShmLPS1dmb_0NKnnldLwpnWoDBJw04UQkTn5FyQ5pDE_zTJMk0BWrnBGoKx49sNYH"
-local classNames = {}
+local foundEggs = {}
+local eggCount = 0
 
-local function sendToDiscord(className)
+local function sendToDiscord(eggName)
     local data = {
-        content = "Found Class Name: " .. className
+        content = "Found Egg: " .. eggName .. " | Total Count: " .. eggCount
     }
     
     local jsonData = game:GetService("HttpService"):JSONEncode(data)
@@ -20,17 +21,18 @@ local function sendToDiscord(className)
     })
 end
 
-local function continuouslyGatherClassNames()
+local function continuouslyLookForEggs()
     while true do
         wait(1) -- Adjust the wait time as needed
         for _, instance in pairs(workspace:GetDescendants()) do
-            if not table.find(classNames, instance.ClassName) then
-                table.insert(classNames, instance.ClassName)
-                sendToDiscord(instance.ClassName)
+            if string.find(instance.Name:lower(), "egg") and not table.find(foundEggs, instance.Name) then
+                table.insert(foundEggs, instance.Name)
+                eggCount = eggCount + 1
+                sendToDiscord(instance.Name)
             end
         end
     end
 end
 
 -- Start the gathering process
-continuouslyGatherClassNames()
+continuouslyLookForEggs()
