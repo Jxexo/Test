@@ -1,9 +1,10 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local Camera = game.Workspace.CurrentCamera
 
 -- Variables
-local aimEnabled = true -- Set to true by default
+local aimEnabled = true -- Toggle aim lock
 local aimTarget = nil
 
 -- Function to get the closest player's head
@@ -29,18 +30,13 @@ local function getClosestPlayerHead()
     return closestHead
 end
 
--- Function to aim at the closest player's head
+-- Function to aim camera at the closest player's head
 local function aimAtPlayerHead()
     if aimEnabled then
         local head = getClosestPlayerHead()
         if head then
-            -- Aim at the head by adjusting the camera's CFrame
-            local headPosition = head.Position
-            local currentPosition = LocalPlayer.Character.Head.Position
-
-            -- Create a new CFrame aiming towards the head
-            local aimDirection = CFrame.new(currentPosition, headPosition)
-            LocalPlayer.Character.HumanoidRootPart.CFrame = aimDirection
+            -- Aim the camera at the closest player's head
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
         end
     end
 end
