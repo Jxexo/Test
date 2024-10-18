@@ -1,57 +1,49 @@
-local webhookURL = "https://discord.com/api/webhooks/1294551378886397972/LiaShmLPS1dmb_0NKnnldLwpnWoDBJw04UQkTn5FyQ5pDE_zTJMk0BWrnBGoKx49sNYH"
-local foundEggCapsules = {}
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
-local function sendToDiscord(message)
-    local data = {
-        content = message
-    }
+-- Variables
+local aimEnabled = true -- Set to true by default
+local aimTarget = nil
 
-    local jsonData = game:GetService("HttpService"):JSONEncode(data)
+-- Function to get the closest player's head
+local function getClosestPlayerHead()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local closestHead = nil
 
-    -- Send the POST request to the webhook
-    local request = http_request or request or HttpPost or syn.request
-    request({
-        Url = webhookURL,
-        Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json"
-        },
-        Body = jsonData
-    })
-end
-
-local function gatherEggCapsuleInfo(instance)
-    local info = "Found Egg Capsule:\n"
-    info = info .. "Name: " .. instance.Name .. "\n"
-    info = info .. "Class: " .. instance.ClassName .. "\n"
-    info = info .. "Position: " .. tostring(instance.Position) .. "\n"
-    info = info .. "Parent: " .. (instance.Parent and instance.Parent.Name or "None") .. "\n"
-    info = info .. "Properties:\n"
-
-    for property, value in pairs(instance:GetAttributes()) do
-        info = info .. string.format(" - %s: %s\n", property, tostring(value))
-    end
-
-    info = info .. "\nChildren:\n"
-    for _, child in ipairs(instance:GetChildren()) do
-        info = info .. " - " .. child.Name .. " (Class: " .. child.ClassName .. ")\n"
-    end
-
-    return info
-end
-
-local function continuouslyLookForEggCapsules()
-    while true do
-        wait(1) -- Adjust the wait time as needed
-        for _, instance in pairs(workspace:GetDescendants()) do
-            if instance.Name == "1- Egg Capsule" and not foundEggCapsules[instance] then
-                foundEggCapsules[instance] = true
-                local message = gatherEggCapsuleInfo(instance)
-                sendToDiscord(message)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local head = player.Character:FindFirstChild("Head")
+            if head then
+                local distance = (head.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = player
+                    closestHead = head
+                end
             end
+        end
+    end
+
+    return closestHead
+end
+
+-- Function to aim at the closest player's head
+local function aimAtPlayerHead()
+    if aimEnabled then
+        local head = getClosestPlayerHead()
+        if head then
+            -- Aim at the head by adjusting the camera's CFrame
+            local headPosition = head.Position
+            local currentPosition = LocalPlayer.Character.Head.Position
+
+            -- Create a new CFrame aiming towards the head
+            local aimDirection = CFrame.new(currentPosition, headPosition)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = aimDirection
         end
     end
 end
 
--- Start the gathering process
-continuouslyLookForEggCapsules()
+-- Run the aim function every frame
+RunService.RenderStepped:Connect(aimAtPlayerHead)
