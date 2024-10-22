@@ -6,6 +6,8 @@ local RunService = game:GetService("RunService")
 -- UI Variables
 local isOpen = true
 local aimbotActive = false
+local dragToggle = nil
+local dragSpeed = 0.25
 
 -- Create the GUI
 local ScreenGui = Instance.new("ScreenGui")
@@ -73,3 +75,34 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+-- Draggable UI Functionality
+local function makeDraggable(frame)
+    local dragging, dragInput, startPos, startPosMouse
+    local function update(input)
+        local delta = input.Position - startPosMouse
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            startPos = frame.Position
+            startPosMouse = input.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            update(input)
+        end
+    end)
+end
+
+makeDraggable(Frame) -- Call the function to make the Frame draggable
