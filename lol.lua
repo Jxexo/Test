@@ -65,20 +65,38 @@ RunService.RenderStepped:Connect(function()
         end
 
         if closestPlayer then
+            -- Aim at the closest player's head
             local targetHeadPosition = closestPlayer.Character.Head.Position
             local camera = Workspace.CurrentCamera
-            local rayDirection = (targetHeadPosition - camera.CFrame.Position).unit * (targetHeadPosition - camera.CFrame.Position).magnitude
-            
-            -- Check for visibility using a raycast
-            local raycastResult = Workspace:Raycast(camera.CFrame.Position, rayDirection)
-
-            -- Check if raycast did not hit any part before reaching the target head
-            if not raycastResult or raycastResult.Instance.Parent ~= closestPlayer.Character then
-                -- Adjust camera CFrame to aim at the target head
-                camera.CFrame = CFrame.new(camera.CFrame.Position, targetHeadPosition)
-            end
+            camera.CFrame = CFrame.new(camera.CFrame.Position, targetHeadPosition)
         end
     end
+end)
+
+-- Highlight players
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer and player.Character then
+        local highlight = Instance.new("Highlight")
+        highlight.Adornee = player.Character
+        highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Red color
+        highlight.FillTransparency = 0.5
+        highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+        highlight.OutlineTransparency = 0
+        highlight.Parent = player.Character
+    end
+end
+
+-- Update highlights in real-time
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        local highlight = Instance.new("Highlight")
+        highlight.Adornee = character
+        highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Red color
+        highlight.FillTransparency = 0.5
+        highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+        highlight.OutlineTransparency = 0
+        highlight.Parent = character
+    end)
 end)
 
 -- Draggable UI Functionality
