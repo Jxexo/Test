@@ -50,23 +50,6 @@ end)
 
 -- Aimbot logic
 RunService.RenderStepped:Connect(function()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            -- Create a highlight if it doesn't exist
-            local highlight = player.Character:FindFirstChild("Highlight")
-            if not highlight then
-                highlight = Instance.new("Highlight")
-                highlight.Parent = player.Character
-                highlight.FillColor = Color3.fromRGB(1, 0, 0) -- Red color
-                highlight.OutlineColor = Color3.fromRGB(1, 0, 0) -- Red outline color
-                highlight.FillTransparency = 0.5 -- Optional: make it semi-transparent
-            end
-
-            -- Set visibility of the highlight based on the aimbot toggle
-            highlight.Enabled = aimbotActive
-        end
-    end
-
     if aimbotActive then
         local closestPlayer = nil
         local closestDistance = math.huge
@@ -82,16 +65,16 @@ RunService.RenderStepped:Connect(function()
         end
 
         if closestPlayer then
-            -- Check if the closest player is visible
             local targetHeadPosition = closestPlayer.Character.Head.Position
             local camera = Workspace.CurrentCamera
-            local ray = Ray.new(camera.CFrame.Position, (targetHeadPosition - camera.CFrame.Position).unit * (targetHeadPosition - camera.CFrame.Position).magnitude)
+            local rayDirection = (targetHeadPosition - camera.CFrame.Position).unit * (targetHeadPosition - camera.CFrame.Position).magnitude
+            
+            -- Check for visibility using a raycast
+            local raycastResult = Workspace:Raycast(camera.CFrame.Position, rayDirection)
 
-            -- Check if the ray hits any part before reaching the target head
-            local hit, hitPosition = Workspace:FindPartOnRay(ray, LocalPlayer.Character)
-
-            if not hit then
-                -- Adjust camera CFrame to aim at the target if not obstructed
+            -- Check if raycast did not hit any part before reaching the target head
+            if not raycastResult or raycastResult.Instance.Parent ~= closestPlayer.Character then
+                -- Adjust camera CFrame to aim at the target head
                 camera.CFrame = CFrame.new(camera.CFrame.Position, targetHeadPosition)
             end
         end
