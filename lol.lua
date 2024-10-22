@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -- UI Variables
 local isOpen = true
@@ -47,7 +48,7 @@ ToggleButton.MouseButton1Click:Connect(function()
 end)
 
 -- Aimbot logic
-game:GetService("RunService").RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function()
     if aimbotActive then
         local closestPlayer = nil
         local closestDistance = math.huge
@@ -63,8 +64,12 @@ game:GetService("RunService").RenderStepped:Connect(function()
         end
 
         if closestPlayer then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(closestPlayer.Character.Head.Position + Vector3.new(0, 0.5, 0))
+            -- Get the direction towards the closest player's head
+            local targetHeadPosition = closestPlayer.Character.Head.Position
+            local camera = workspace.CurrentCamera
+
+            -- Adjust camera CFrame to aim at the target
+            camera.CFrame = CFrame.new(camera.CFrame.Position, targetHeadPosition)
         end
     end
 end)
-
