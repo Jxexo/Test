@@ -2,12 +2,11 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 -- UI Variables
 local isOpen = true
 local aimbotActive = false
-local dragToggle = nil
-local dragSpeed = 0.25
 
 -- Create the GUI
 local ScreenGui = Instance.new("ScreenGui")
@@ -51,6 +50,23 @@ end)
 
 -- Aimbot logic
 RunService.RenderStepped:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            -- Create a highlight if it doesn't exist
+            local highlight = player.Character:FindFirstChild("Highlight")
+            if not highlight then
+                highlight = Instance.new("Highlight")
+                highlight.Parent = player.Character
+                highlight.FillColor = Color3.fromRGB(1, 0, 0) -- Red color
+                highlight.OutlineColor = Color3.fromRGB(1, 0, 0) -- Red outline color
+                highlight.FillTransparency = 0.5 -- Optional: make it semi-transparent
+            end
+
+            -- Set visibility of the highlight based on the aimbot toggle
+            highlight.Enabled = aimbotActive
+        end
+    end
+
     if aimbotActive then
         local closestPlayer = nil
         local closestDistance = math.huge
@@ -66,12 +82,18 @@ RunService.RenderStepped:Connect(function()
         end
 
         if closestPlayer then
-            -- Get the direction towards the closest player's head
+            -- Check if the closest player is visible
             local targetHeadPosition = closestPlayer.Character.Head.Position
-            local camera = workspace.CurrentCamera
+            local camera = Workspace.CurrentCamera
+            local ray = Ray.new(camera.CFrame.Position, (targetHeadPosition - camera.CFrame.Position).unit * (targetHeadPosition - camera.CFrame.Position).magnitude)
 
-            -- Adjust camera CFrame to aim at the target
-            camera.CFrame = CFrame.new(camera.CFrame.Position, targetHeadPosition)
+            -- Check if the ray hits any part before reaching the target head
+            local hit, hitPosition = Workspace:FindPartOnRay(ray, LocalPlayer.Character)
+
+            if not hit then
+                -- Adjust camera CFrame to aim at the target if not obstructed
+                camera.CFrame = CFrame.new(camera.CFrame.Position, targetHeadPosition)
+            end
         end
     end
 end)
